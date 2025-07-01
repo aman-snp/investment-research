@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "SPGMI.Actors.InvestmentResearch.ResearchIndexer": {
+      "commandName": "Project",
+      "commandLineArgs": "ResearchIndexer"
+    }
+  }
+}

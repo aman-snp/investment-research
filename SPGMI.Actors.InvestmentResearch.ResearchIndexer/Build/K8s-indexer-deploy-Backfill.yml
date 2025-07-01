@@ -1,0 +1,64 @@
+﻿# Deployment specifications for our applications
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: research-data-pipeline-indexer-backfill-deployment
+  namespace: research-indexer-services-ns
+
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: research-data-pipeline-indexer-backfill
+      
+  minReadySeconds: 30
+  strategy:
+    rollingUpdate:
+      maxSurge: 2
+      maxUnavailable: 0
+    type: RollingUpdate
+  template:
+    metadata:
+      labels:
+        app: research-data-pipeline-indexer-backfill
+        AppID: 28D24EB0-4706-2110-1844-9E34846D43FB
+    spec:
+      dnsPolicy: Default
+      nodeSelector:
+        kubernetes.io/os: linux
+      containers:
+      - name: research-data-pipeline-indexer-backfill
+        image:  ${IMAGE}
+        args: ["ResearchIndexer"]
+        ports:
+        - containerPort: 80
+        imagePullPolicy: Always
+        env:
+        - name: DOTNETCORE_ENVIRONMENT
+          value: ${ENVIRONMENT}
+        - name: PERSISTER_POSTFIX
+          value: Backfill
+          # Backfill Threads
+        resources:
+          # if the memory in use gets to the limit, a new container will be fired up and the violator shut down.
+          limits:
+            memory: 5000Mi
+            cpu: "1.50"
+          requests: # specifies the resources the container is guaranteed to get.
+            memory: 4000Mi
+            cpu: "1.20"
+
+---    
+# We declare our load balancer
+apiVersion: v1
+kind: Service
+metadata:
+  namespace: research-indexer-services-ns
+  name: research-data-pipeline-indexer
+spec:
+  type: NodePort
+  ports:
+  - port: 80
+  selector:
+    app: research-data-pipeline-indexer-backfill
+

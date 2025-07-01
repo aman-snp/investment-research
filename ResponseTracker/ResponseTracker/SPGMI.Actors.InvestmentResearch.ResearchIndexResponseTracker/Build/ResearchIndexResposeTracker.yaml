@@ -1,0 +1,76 @@
+name: $(TeamProject)_$(BuildDefinitionName)_$(SourceBranchName)_$(Date:yyyyMMdd)$(Rev:.r)
+variables:
+- name: systemAccessToken
+  value: $(System.AccessToken)
+- name: system.debug
+  value: true
+- name: region
+  value: 'us-east-1'
+- group: spg-buildpipelines-shared-variables
+
+resources:
+  repositories:
+    - repository: ado-yaml-templates
+      type: git
+      ref: refs/heads/master
+      name: DevOps Shared Framework/ado-yaml-templates
+
+trigger:
+  branches:
+    include:
+      - master
+      - release/*
+
+stages:
+- template: builds/build-generic.v1.yml@ado-yaml-templates
+  parameters:
+    appsec:
+      researchindexresposetracker:
+        scan: 'disabled'
+        whitesource:
+          projectToken: 'fccf32fae99d45ff9880baa58e4bfd398b17cbac16084a7186001fb33e530364'
+          includes: '**/*.nupkg'
+          excludes: ''
+          pool: 'csd-build-pool'
+          apiKey: $(whitesource_apikey) #'6367710f406a4ba99ddf741db18d96ba83a4bed275bb48eb993e3710f44b06e2'
+          userkey: '$(whitesource_userKey)'
+        fortify:
+          versionId: '16851'
+          buildId: 'ResearchIndexResposeTracker'
+          pool: 'csd-build-pool'
+          binPath: 'C:/Progra~1/Fortify/Fortify_SCA_and_Apps_20.1.0/bin'
+        sonarqube:
+          projectKey: 'CSD-DP:ResearchIndexResposeTracker'
+          projectName: 'CSD-DP:ResearchIndexResposeTracker'
+          serviceConnection: 'SonarQube'
+          pool: 'csd-build-pool'
+
+    images:
+      researchindexresposetracker:
+        deployment:
+          platforms:
+            EKSInt:
+              datacenters:
+              - us-east-1
+              skipStageDeployment: 'true'
+              dockerRepository: 
+                dev: container-platform/dev/re/research-team/investmentresearch-indexer
+                prod: container-platform/prod/re/research-team/investmentresearch-indexer
+              namespace: research-indexer-services-ns
+              manifests:
+              - ResponseTracker/ResponseTracker/SPGMI.Actors.InvestmentResearch.ResearchIndexResponseTracker/Build/K8s-indexer-deploy.yml
+        dotnetcoreVersion: 3.x
+        profile: "dotnet"
+        devbranch: main
+        imageName: researchindexresposetracker
+        namespace: research-indexer-services-ns
+        solution: ResponseTracker/ResponseTracker/SPGMI.Actors.InvestmentResearch.ResearchIndexResponseTracker/SPGMI.Actors.InvestmentResearch.ResearchIndexResponseTracker.sln
+        dockerContext: .
+        skipStage: yes
+        dockerFile: ResponseTracker/ResponseTracker/SPGMI.Actors.InvestmentResearch.ResearchIndexResponseTracker/Dockerfile
+        #dockerFile: ResearchIndexer.Dockerfile
+        deploymentSpec: SPGMI.Actors.InvestmentResearch.ResearchIndexer/Build/K8s-indexer-deploy.yaml
+        baseImagerepo: ECRInt
+        profileName: investmentresearchindexer
+        pool: ASHLinuxpool
+        nugetconfig: $(Build.SourcesDirectory)/ResponseTracker/ResponseTracker/SPGMI.Actors.InvestmentResearch.ResearchIndexResponseTracker

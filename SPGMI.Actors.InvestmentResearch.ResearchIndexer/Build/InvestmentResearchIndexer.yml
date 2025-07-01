@@ -1,0 +1,96 @@
+name: $(TeamProject)_$(BuildDefinitionName)_$(SourceBranchName)_$(Date:yyyyMMdd)$(Rev:.r)
+variables:
+- name: systemAccessToken
+  value: $(System.AccessToken)
+- name: system.debug
+  value: true
+- name: region
+  value: 'us-east-1'
+- group: spg-buildpipelines-shared-variables
+
+resources:
+  repositories:
+    - repository: ado-yaml-templates
+      type: git
+      #ref: refs/heads/releases/21.8.2
+      ref:  refs/heads/master
+      name: DevOps Shared Framework/ado-yaml-templates
+
+trigger:
+  branches:
+    include:
+      - master
+      - release/*
+  paths:
+    include:
+      - SPGMI.Actors.InvestmentResearch.ResearchIndexer
+schedules:
+- cron: "0 0 1 */3 *"
+  displayName: Build Every Quarter
+  branches:
+   include:
+    - master
+    - main
+  always: true
+
+stages:
+  - template: builds/build-generic.v1.yml@ado-yaml-templates
+    parameters:
+      appsec:
+        investmentresearchindexer:
+          scan: 'enabled'
+          whitesource:
+            projectToken: e034972a18a3404883d5690fc1152fa85780137d13ab43daaba5d8eb265e65ab
+            apiKey: $(whitesource_apikey)
+            userkey: '$(whitesource_userKey)'
+            pool: 'csd-build-pool'
+          fortify:
+            versionId: '14297'
+            buildId: 'InvestmentResearchIndexer'
+            pool: 'csd-build-pool'
+            binPath: 'C:/Progra~1/Fortify/Fortify_SCA_and_Apps_20.1.0/bin'
+            fortify_ssctoken: $(fortify_ssctoken)
+          sonarqube:
+            projectKey: 'CSD-DP:InvestmentResearchIndexer-Compile'
+            projectName: 'CSD-DP:InvestmentResearchIndexer-Compile'
+            serviceConnection: 'SonarQube'
+            pool: 'csd-build-pool'
+          
+      images:
+        investmentresearchindexer:
+          deployment:
+            platforms:
+              EKSInt:
+                datacenters:
+                - us-east-1
+                skipStageDeployment: 'true'
+                dockerRepository: 
+                  dev: container-platform/dev/re/research-team/investmentresearch-indexer
+                  prod: container-platform/prod/research-team/investmentresearch-indexer
+                namespace: research-indexer-services-ns
+                manifests:
+                - SPGMI.Actors.InvestmentResearch.ResearchIndexer/Build/K8s-indexer-deploy-Backfill.yml
+                - SPGMI.Actors.InvestmentResearch.ResearchIndexer/Build/K8s-indexer-deploy-Bulk.yml
+                - SPGMI.Actors.InvestmentResearch.ResearchIndexer/Build/K8s-indexer-deploy-Online.yml
+                - SPGMI.Actors.InvestmentResearch.ResearchIndexer/Build/K8s-indexer-deploy-Realtime.yml
+                - SPGMI.Actors.InvestmentResearch.ResearchIndexer/Build/K8s-indexer-deploy-Replicator.yml
+          dotnetcoreVersion: 3.x
+          profile: "dotnet"
+          imageName: investmentresearchindexer
+          namespace: research-indexer-services-ns
+          solution: ./SPGMI.Actors.InvestmentResearch.ResearchIndexer/SPGMI.Actors.InvestmentResearch.ResearchIndexer.csproj
+          dockerContext: .
+          skipStage: yes
+          dockerFile: SPGMI.Actors.InvestmentResearch.ResearchIndexer/Dockerfile
+          #deploymentSpec: SPGMI.Actors.InvestmentResearch.ResearchIndexer/Build/K8s-indexer-deploy.yaml
+          baseImagerepo: ECRInt
+          profileName: investmentresearchindexer
+          #pool: AshLinuxPool
+          pool:
+            build:
+              #name: 'csd-build-pool'
+              agenttype: 'private'
+            docker:
+              name:  AshLinuxPool #'Containerized - Windows'
+              #name: Containerized - Ubuntu 16.04
+          nugetconfig: $(Build.SourcesDirectory)/SPGMI.Actors.InvestmentResearch.ResearchIndexer

@@ -1,0 +1,80 @@
+name: $(TeamProject)_$(BuildDefinitionName)_$(SourceBranchName)_$(Date:yyyyMMdd)$(Rev:.r)
+variables:
+  system.debug: true
+  system.debugContext: true
+  systemAccessToken: $(System.AccessToken)
+  revision: $[counter(format('{0:yyyyMMdd}', pipeline.startTime), 1)] # ' (fix color coding)
+  service_name: investmentresearchindexer
+  NAMESPACE: research-indexer-services-ns
+  group: spg-buildpipelines-shared-variables
+
+resources:
+  repositories:
+    - repository: ado-yaml-templates
+      type: git
+      ref: refs/heads/master
+      name: DevOps Shared Framework/ado-yaml-templates
+
+trigger:
+  branches:
+    include:
+    - master
+    - main
+    - releases/*
+
+stages:
+- template: builds/build-generic.v1.yml@ado-yaml-templates
+  parameters:
+    appsec:
+      investmentresearchindexer:
+          scan: 'disabled'
+          whitesource:
+            projectToken: e034972a18a3404883d5690fc1152fa85780137d13ab43daaba5d8eb265e65ab
+            apiKey: $(whitesource_apikey)
+            pool: 'SNLServiceModulesPool'
+            whitesource_userkey: $(whitesource_userKey)
+          fortify:
+            versionId: '14297'
+            buildId: 'InvestmentResearchIndexer'
+            pool: 'SNLServiceModulesPool'
+            binPath: 'C:/Progra~1/Fortify/Fortify_SCA_and_Apps_20.1.0/bin'
+          sonarqube:
+            projectKey: 'CSD-DP:InvestmentResearchIndexer-Compile'
+            projectName: 'CSD-DP:InvestmentResearchIndexer-Compile'
+            serviceConnection: 'SonarQube'
+
+    images:
+      investmentresearchindexer:
+        deployment:
+          platforms:
+            EKSInt:
+              datacenters:
+              - us-east-1
+              deploymentType: normal
+              dockerRepository:
+                dev: container-platform/dev/re/research-team/investmentresearch-indexer
+                prod: container-platform/prod/research-team/investmentresearch-indexer
+              namespace: research-indexer-services-ns
+              manifests:
+              - SPGMI.Actors.InvestmentResearch.ResearchIndexer/Build/K8s-indexer-deploy.yml
+        dotnetcoreVersion: 3.x
+        devbranch: master
+        profile: "dotnet"
+        #nugetconfig: $(Build.SourcesDirectory)/
+        secureFile: 'Nuget.Config'
+        #skipStage: yes
+        pool:
+          build:
+            agenttype: 'private'
+          docker:
+            #name: AshLinuxPool
+        solution: SPGMI.Actors.InvestmentResearch.ResearchIndexer/SPGMI.Actors.InvestmentResearch.ResearchIndexer.csproj
+        dockerContext: .
+        dockerFile: ResearchIndexer.Dockerfile
+        imageName: investmentresearchindexer
+        baseimagerepo: private
+        serviceName: investmentresearchindexer
+        version:
+          major: 1
+          minor: 0
+          revision: $(revision)

@@ -1,0 +1,32 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>netcoreapp3.1</TargetFramework>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Confluent.Kafka" Version="1.0.0" />
+    <PackageReference Include="NEST" Version="7.17.5" />
+    <PackageReference Include="SPGMI.Bindings.Kafka" Version="2.0.220407.2" />
+    <PackageReference Include="SPGMI.Config" Version="1.0.2" />
+    <PackageReference Include="SPGMI.ContainerHost" Version="2.0.220209.2" />
+    <PackageReference Include="SPGMI.DataPipeline.Actors.Persister" Version="2.0.231017.1" />
+    <PackageReference Include="SPGMI.OData.Client" Version="2.0.23305000" />
+    <PackageReference Include="SPGMI.Pipeline" Version="2.0.230925.1" />
+    <PackageReference Include="SPGMI.Pipeline.ObjectSets" Version="2.0.20231113.1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="appsettings.Development.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="appsettings.Production.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="appsettings.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
+</Project>

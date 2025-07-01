@@ -1,0 +1,60 @@
+﻿# Deployment specifications for our applications
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: research-data-pipeline-response-deployment
+  namespace: research-indexer-services-ns
+
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      application: research-data-pipeline-responsetracker
+      
+  minReadySeconds: 30
+  strategy:
+    rollingUpdate:
+      maxSurge: 2
+      maxUnavailable: 0
+    type: RollingUpdate
+  template:
+    metadata:
+      labels:
+        application: research-data-pipeline-responsetracker
+        AppID: 60A706BE-1B4E-2010-B29F-A756624BCB2D
+    spec:
+      dnsPolicy: Default
+      nodeSelector:
+        kubernetes.io/os: linux
+      containers:
+      - name: researchdatapipelineresponsetracker-first
+        image:  ${IMAGE}
+        args: ["researchdatapipelineresponsetracker"]
+        ports:
+        - containerPort: 80
+        imagePullPolicy: Always
+        env:
+        - name: DOTNETCORE_ENVIRONMENT
+          value: ${ENVIRONMENT}
+        resources:
+          # if the memory in use gets to the limit, a new container will be fired up and the violator shut down.
+          limits:
+            memory: 900Mi
+            cpu: "0.95"
+          requests: # specifies the resources the container is guaranteed to get.
+            memory: 700Mi
+            cpu: "0.75"
+
+---    
+# We declare our load balancer
+apiVersion: v1
+kind: Service
+metadata:
+  namespace: research-indexer-services-ns
+  name: research-data-pipeline-responsetracker
+spec:
+  type: NodePort
+  ports:
+  - port: 80
+  selector:
+    application: research-data-pipeline-responsetracker
